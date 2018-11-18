@@ -22,3 +22,6 @@ For detailed command help, please refer to [manual](https://github.com/coyove/go
 ## iOS/macOS Client
 
 No plan yet.
+
+更新fork源码
+https://github.com/BearRan/CRAnimation/wiki/Fork%E7%9A%84%E5%88%86%E6%94%AF%E4%BB%8E%E6%BA%90%E5%88%86%E6%94%AF%E6%9B%B4%E6%96%B0%E7%9A%84%E6%96%B9%E6%B3%95#%E5%9C%A8github%E4%B8%8A%E6%93%8D%E4%BD%9C%E8%BF%9B%E8%A1%8C%E6%9B%B4%E6%96%B0%E6%BA%90%E4%BB%A3%E7%A0%81
