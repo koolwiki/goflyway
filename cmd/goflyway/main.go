@@ -7,12 +7,14 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	_url "net/url"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
@@ -30,19 +32,21 @@ var version = "__devel__"
 
 var (
 	// General flags
-	cmdHelp     = flag.Bool("h", false, "Display help message")
-	cmdHelp2    = flag.Bool("help", false, "Display long help message")
-	cmdConfig   = flag.String("c", "", "Config file path")
-	cmdLogLevel = flag.String("lv", "info", "[loglevel] Logging level: {dbg0, dbg, log, info, warn, err, off}")
-	cmdAuth     = flag.String("a", "", "[auth] Proxy authentication, form: username:password (remember the colon)")
-	cmdKey      = flag.String("k", "0123456789abcdef", "[password] Password, do not use the default one")
-	cmdLocal    = flag.String("l", ":8100", "[listen] Listening address")
-	cmdTimeout  = flag.Int64("t", 20, "[timeout] Connection timeout in seconds, 0 to disable")
-	cmdSection  = flag.String("y", "", "Config section to read, empty to disable")
-	cmdUnderlay = flag.String("U", "http", "[underlay] Underlay protocol: {http, kcp, https}")
-	cmdGenCA    = flag.Bool("gen-ca", false, "Generate certificate (ca.pem) and private key (key.pem)")
-	cmdACL      = flag.String("acl", "chinalist.txt", "[acl] Load ACL file")
-	cmdACLCache = flag.Int64("acl-cache", 1024, "[aclcache] ACL cache size")
+	cmdHelp         = flag.Bool("h", false, "Display help message")
+	cmdHelp2        = flag.Bool("help", false, "Display long help message")
+	cmdConfig       = flag.String("c", "", "Config file path")
+	cmdLogLevel     = flag.String("lv", "info", "[loglevel] Logging level: {dbg0, dbg, log, info, warn, err, off}")
+	cmdAuth         = flag.String("a", "", "[auth] Proxy authentication, form: username:password (remember the colon)")
+	cmdKey          = flag.String("k", "0123456789abcdef", "[password] Password, do not use the default one")
+	cmdLocal        = flag.String("l", ":8100", "[listen] Listening address")
+	cmdTimeout      = flag.Int64("t", 20, "[timeout] Connection timeout in seconds, 0 to disable")
+	cmdSection      = flag.String("y", "", "Config section to read, empty to disable")
+	cmdUnderlay     = flag.String("U", "http", "[underlay] Underlay protocol: {http, kcp, https}")
+	cmdGenCA        = flag.Bool("gen-ca", false, "Generate certificate (ca.pem) and private key (key.pem)")
+	cmdACL          = flag.String("acl", "chinalist.txt", "[acl] Load ACL file")
+	cmdACLCache     = flag.Int64("acl-cache", 1024, "[aclcache] ACL cache size")
+	cmdSingleThread = flag.Bool("st", false, "Single thread multiple goroutines")
+	cmdCPUProfile   = flag.Bool("cpuprofile", false, "")
 
 	// Server flags
 	cmdThrot      = flag.Int64("throt", 0, "[throt] S. Traffic throttling in bytes")
@@ -191,8 +195,17 @@ func loadConfig() error {
 var logger *logg.Logger
 
 func main() {
+
 	method, url := "", ""
 	flag.Parse()
+	if *cmdCPUProfile {
+		f, err := os.Create("cpuprofile")
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	if *cmdHelp2 {
 		flag.Usage()
@@ -248,7 +261,9 @@ func main() {
 		method, url = "PATCH", *cmdPatch
 	}
 
-	runtime.GOMAXPROCS(runtime.NumCPU() * 4)
+	if !*cmdSingleThread {
+		runtime.GOMAXPROCS(runtime.NumCPU() * 4)
+	}
 	configerr := loadConfig()
 
 	logger = logg.NewLogger(*cmdLogLevel)
